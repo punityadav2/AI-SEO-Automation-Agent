@@ -1,0 +1,151 @@
+{
+  "name": "AI SEO Automation Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "keyword",
+              "value": "digital marketing agency"
+            },
+            {
+              "name": "platform",
+              "value": "website"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set Keyword & Platform",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search",
+        "authentication": "none",
+        "options": {
+          "timeout": 15000
+        },
+        "queryParameters": {
+          "parameters": [
+            { "name": "q", "value": "={{ $json.keyword }}" },
+            { "name": "api_key", "value": "={{ $env.SERPAPI_KEY }}" },
+            { "name": "num", "value": "10" }
+          ]
+        }
+      },
+      "name": "SerpAPI — Keyword Research",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Score keywords: volume_proxy / difficulty_proxy\nconst results = $input.first().json.organic_results || [];\nconst keyword = $('Set Keyword & Platform').first().json.keyword;\nconst platform = $('Set Keyword & Platform').first().json.platform;\n\nconst scored = results.map((r, i) => ({\n  keyword: `${keyword} ${r.title?.split(' ').slice(0,2).join(' ') || ''}`.trim(),\n  platform: platform,\n  position: i + 1,\n  score: parseFloat((results.length / (i + 1)).toFixed(4)),\n  difficulty: i < 3 ? 'High' : i < 7 ? 'Medium' : 'Low',\n  top_url: r.link || ''\n}));\n\nreturn scored.map(k => ({ json: k }));"
+      },
+      "name": "Score Keywords",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "none",
+        "method": "POST",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an expert SEO content writer. Write SEO-optimised content.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Write a 1000-word SEO article for keyword: {{ $('Set Keyword & Platform').first().json.keyword }}. Include an H1, 3 H2s, FAQ section, and JSON-LD Article schema. Format as Markdown.\"\n    }\n  ],\n  \"temperature\": 0.75,\n  \"max_tokens\": 2048\n}",
+        "options": {
+          "timeout": 60000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.GROQ_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "name": "Groq API — Generate Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract generated article and build sheet row\nconst response = $input.first().json;\nconst content = response.choices?.[0]?.message?.content || 'No content generated';\nconst keyword = $('Set Keyword & Platform').first().json.keyword;\nconst now = new Date().toISOString().slice(0, 19).replace('T', ' ');\n\nreturn [{\n  json: {\n    timestamp: now,\n    keyword: keyword,\n    platform: $('Set Keyword & Platform').first().json.platform,\n    content_preview: content.slice(0, 200),\n    word_count: content.split(' ').length,\n    status: 'success'\n  }\n}];"
+      },
+      "name": "Process Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.GOOGLE_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date":     "={{ $json.timestamp }}",
+            "Keyword":  "={{ $json.keyword }}",
+            "Platform": "={{ $json.platform }}",
+            "Words":    "={{ $json.word_count }}",
+            "Status":   "={{ $json.status }}"
+          }
+        },
+        "options": {}
+      },
+      "name": "Google Sheets — Log Results",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1500, 300]
+    }
+  ],
+  "connections": {
+    "Set Keyword & Platform": {
+      "main": [[{ "node": "SerpAPI — Keyword Research", "type": "main", "index": 0 }]]
+    },
+    "SerpAPI — Keyword Research": {
+      "main": [[{ "node": "Score Keywords", "type": "main", "index": 0 }]]
+    },
+    "Score Keywords": {
+      "main": [[{ "node": "Groq API — Generate Content", "type": "main", "index": 0 }]]
+    },
+    "Groq API — Generate Content": {
+      "main": [[{ "node": "Process Content", "type": "main", "index": 0 }]]
+    },
+    "Process Content": {
+      "main": [[{ "node": "Google Sheets — Log Results", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "",
+    "timezone": "Asia/Kolkata"
+  },
+  "staticData": null,
+  "tags": ["SEO", "Automation", "AI"],
+  "triggerCount": 0,
+  "updatedAt": "2026-03-18T00:00:00.000Z",
+  "versionId": "1"
+}

@@ -1,0 +1,10 @@
+[server]
+headless = false
+port = 8501
+
+[runner]
+# Force UTF-8 encoding on Windows
+magicEnabled = true
+
+[browser]
+gatherUsageStats = false

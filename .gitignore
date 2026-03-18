@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# Environment
+.env
+
+# Google credentials
+service_account.json
+
+# Logs
+logs/
+
+# Generated outputs (keep structure, ignore actual content)
+outputs/*.json
+outputs/*.md
+outputs/*.html
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+PRD.md
