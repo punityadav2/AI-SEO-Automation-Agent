@@ -225,15 +225,3 @@ With more time and a paid budget, I'd make the following improvements:
 
 ---
 
-## 🏆 Scoring Coverage
-
-| Criterion | Weight | Coverage |
-|---|---|---|
-| It actually works | 25% | End-to-end pipeline, tested per module |
-| AI output quality | 20% | Competitor-aware prompts, no templates |
-| Tool & API choices | 20% | GSC API (real data), GMB API, justified in README |
-| Error handling | 15% | Retry + jitter + fallbacks + error logs |
-| Reporting | 10% | GSC real data + Google Sheets + Streamlit |
-| Documentation | 10% | This README + .env.example + n8n export |
-| Bonus: Keyword scoring | +5% | Score = volume proxy / difficulty |
-| Bonus: Live dashboard | +5% | Streamlit with real-time data |
